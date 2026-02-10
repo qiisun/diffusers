@@ -895,14 +895,18 @@ class Flux2KleinPipeline(DiffusionPipeline, Flux2LoraLoaderMixin):
 
         self._current_timestep = None
 
-        latents = self._unpack_latents_with_ids(latents, latent_ids)
+        if callback_on_step_end is not None and self.interrupt:
+            # DONOT unpacking & shifting
+            pass
+        else: 
+            latents = self._unpack_latents_with_ids(latents, latent_ids)
 
-        latents_bn_mean = self.vae.bn.running_mean.view(1, -1, 1, 1).to(latents.device, latents.dtype)
-        latents_bn_std = torch.sqrt(self.vae.bn.running_var.view(1, -1, 1, 1) + self.vae.config.batch_norm_eps).to(
-            latents.device, latents.dtype
-        )
-        latents = latents * latents_bn_std + latents_bn_mean
-        latents = self._unpatchify_latents(latents)
+            latents_bn_mean = self.vae.bn.running_mean.view(1, -1, 1, 1).to(latents.device, latents.dtype)
+            latents_bn_std = torch.sqrt(self.vae.bn.running_var.view(1, -1, 1, 1) + self.vae.config.batch_norm_eps).to(
+                latents.device, latents.dtype
+            )
+            latents = latents * latents_bn_std + latents_bn_mean
+            latents = self._unpatchify_latents(latents)
         if output_type == "latent":
             image = latents
         else:
